@@ -7,6 +7,11 @@ ADS1115 ADSArray[2];
 uint16_t faderValues[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint16_t faderValuesLast[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
+uint8_t buttonSensePins[] = {32, 33, 34, 35};
+uint8_t buttonPullPins[] = {14, 25, 26, 27};
+bool buttonArray[sizeof(buttonSensePins) * sizeof(buttonPullPins)];
+bool buttonArrayLast[sizeof(buttonArray)];
+
 uint8_t threshold = 16;
 
 void ADS_loop();
