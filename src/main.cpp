@@ -5,10 +5,14 @@
 
 #include "ADS1X15.h"
 
+#include "buttonMatrix.h"
+
 // Ethernet
 uint8_t mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x14, 0x48};  // MAC Adress of your device
 IPAddress ip(10, 0, 0, 123);                           // IP address of your device
 IPAddress dns(10, 0, 0, 1);                            // DNS address of your device
+
+IPAddress console(10, 0, 0, 5);
 
 EthernetUDP Udp;
 const unsigned int console_Port = 9999;
@@ -21,20 +25,26 @@ uint16_t faderValuesLast[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 uint8_t buttonSensePins[] = {32, 33, 34, 35};
 uint8_t buttonPullPins[] = {14, 25, 26, 27};
-bool buttonArray[sizeof(buttonSensePins) * sizeof(buttonPullPins)];
-bool buttonArrayLast[sizeof(buttonArray)];
+ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePins),
+                          sizeof(buttonPullPins));
+
+void valueChangedCallback(uint8_t i, bool state) {
+  Serial.printf("Button %2d (%d,%d) changed to %s\n", i, buttonMatrix.getX(i), buttonMatrix.getY(i),
+                state ? "Released" : "Pressed");
+  sendOscMessage("button/" + i, state ? 1.0 : 0.0);
+};
 
 uint8_t threshold = 16;
 
 void ADS_loop();
 bool checkChanged();
 
-void buttonMatrix_loop();
-
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Setup");
+
+  buttonMatrix.valueChangedCallback(valueChangedCallback);
 
   // init Ethernet
   Ethernet.init(5);
@@ -65,7 +75,7 @@ void setup() {
 
 void loop() {
   ADS_loop();
-  buttonMatrix_loop();
+  buttonMatrix.loop();
 
   if (checkChanged()) {
     for (size_t i = 0; i < 8; i++) {
@@ -99,29 +109,6 @@ bool checkChanged() {
     if (abs(faderValuesLast[i] - faderValues[i]) > threshold) changed = true;
   }
   return changed;
-}
-
-void buttonMatrix_loop() {
-  memcpy(buttonArrayLast, buttonArray, sizeof(buttonArray));
-
-  for (size_t p = 0; p < sizeof(buttonPullPins); p++) {
-    for (uint8_t i = 0; i < sizeof(buttonPullPins); i++) digitalWrite(buttonPullPins[i], i != p);
-    delay(1);
-    for (size_t s = 0; s < sizeof(buttonSensePins); s++) {
-      buttonArray[p * sizeof(buttonSensePins) + s] = digitalRead(buttonSensePins[s]);
-    }
-  }
-
-  for (size_t i = 0; i < sizeof(buttonArray); i++) {
-    if (buttonArray[i] != buttonArrayLast[i]) {
-      uint8_t y = i / sizeof(buttonPullPins);
-      uint8_t x = i % sizeof(buttonPullPins);
-
-      Serial.printf("Button %2d (%d,%d) changed to %s\n", i, x, y,
-                    buttonArray[i] ? "Released" : "Pressed");
-      sendOscMessage("button/", buttonArray[i] ? 0.0 : 1.0);
-    }
-  }
 }
 
 void sendOscMessage(const String &address, float value) {
