@@ -1,6 +1,18 @@
 #include <Arduino.h>
+#include "Ethernet.h"
+#include <EthernetUdp.h>
+#include <OSCMessage.h>
 
 #include "ADS1X15.h"
+
+// Ethernet
+uint8_t mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x14, 0x48};  // MAC Adress of your device
+IPAddress ip(10, 0, 0, 123);                           // IP address of your device
+IPAddress dns(10, 0, 0, 1);                            // DNS address of your device
+
+EthernetUDP Udp;
+const unsigned int console_Port = 9999;
+const unsigned int localPort = 8888;
 
 ADS1115 ADSArray[2];
 
@@ -23,6 +35,17 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Setup");
+
+  // init Ethernet
+  Ethernet.init(5);
+  while (Ethernet.hardwareStatus() == EthernetNoHardware) Serial.println("hardware Error");
+  if (Ethernet.begin(mac) == 0) {
+    delay(10);
+    Ethernet.begin(mac, ip, dns);
+  }
+  Serial.println(Ethernet.localIP());
+  Udp.begin(localPort);
+
 
   Wire.begin();
 
@@ -96,6 +119,15 @@ void buttonMatrix_loop() {
 
       Serial.printf("Button %2d (%d,%d) changed to %s\n", i, x, y,
                     buttonArray[i] ? "Released" : "Pressed");
+      sendOscMessage("button/", buttonArray[i] ? 0.0 : 1.0);
     }
   }
+}
+
+void sendOscMessage(const String &address, float value) {
+  OSCMessage msg(address.c_str());
+  msg.add(value);
+  Udp.beginPacket(console_ip, console_Port);
+  msg.send(Udp);
+  Udp.endPacket();
 }
