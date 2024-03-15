@@ -41,7 +41,9 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Setup");
 
+  buttonMatrix.init();
   buttonMatrix.valueChangedCallback(buttonChangedCallback);
+  faders.init();
   faders.valueChangedCallback(faderChangedCallback);
 
   // init Ethernet
