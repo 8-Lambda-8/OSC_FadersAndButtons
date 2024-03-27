@@ -17,8 +17,8 @@ EthernetUDP Udp;
 const unsigned int console_Port = 9999;
 const unsigned int localPort = 8888;
 
-uint8_t buttonSensePins[] = {32, 33, 34, 35};
-uint8_t buttonPullPins[] = {14, 25, 26, 27};
+uint8_t buttonSensePins[] = {26, 25, 33, 32, 35, 34, 39, 36};
+uint8_t buttonPullPins[] = {13, 12, 14, 27};
 ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePins),
                           sizeof(buttonPullPins));
 
