@@ -3,6 +3,8 @@
 #include <EthernetUdp.h>
 #include <OSCMessage.h>
 
+#include <NeoPixelBus.h>
+
 #include "i2c_fader.h"
 #include "buttonMatrix.h"
 
@@ -23,6 +25,9 @@ ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePin
                           sizeof(buttonPullPins));
 
 Faders faders(2);
+
+NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(32, 4);
+
 void sendOscMessage(const String &address, float value);
 
 void buttonChangedCallback(uint8_t i, bool state) {
@@ -40,6 +45,12 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Setup");
+
+  leds.Begin();
+  for (size_t i = 0; i < 32; i++) {
+    leds.SetPixelColor(i, RgbColor(30,0,0));
+  }
+  leds.Show();
 
   buttonMatrix.init();
   buttonMatrix.valueChangedCallback(buttonChangedCallback);
