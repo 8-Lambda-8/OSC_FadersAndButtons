@@ -48,10 +48,14 @@ void setup() {
   Serial.println("Setup");
 
   leds.Begin();
-  for (size_t i = 0; i < 32; i++) {
-    leds.SetPixelColor(i, RgbColor(30,0,0));
-  }
-  leds.Show();
+  for (auto &&col : {RgbColor(128, 0, 0), RgbColor(0, 128, 0), RgbColor(0, 0, 128)})
+    for (size_t i = 0; i < 32; i++) {
+      leds.SetPixelColor(ledMap(i), col);
+      leds.Show();
+      delay(30);
+      leds.SetPixelColor(ledMap(i), RgbColor(0));
+      leds.Show();
+    }
 
   buttonMatrix.init();
   buttonMatrix.valueChangedCallback(buttonChangedCallback);
