@@ -28,6 +28,7 @@ Faders faders(2);
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(32, 4);
 
+uint8_t ledMap(uint8_t button);
 void sendOscMessage(const String &address, float value);
 
 void buttonChangedCallback(uint8_t i, bool state) {
@@ -81,4 +82,12 @@ void sendOscMessage(const String &address, float value) {
   Udp.beginPacket(console.toString().c_str(), console_Port);
   msg.send(Udp);
   Udp.endPacket();
+}
+
+uint8_t ledMap(uint8_t button) {
+  uint8_t mod = button % 16;
+  if (mod < 4) return button;
+  if (mod < 8) return button + 4;
+  if (mod < 12) return button - 4;
+  return button;
 }
