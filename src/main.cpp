@@ -2,6 +2,7 @@
 #include "Ethernet.h"
 #include <EthernetUdp.h>
 #include <OSCMessage.h>
+#include <OSCBoards.h>
 
 #include <NeoPixelBus.h>
 
@@ -27,19 +28,28 @@ ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePin
 Faders faders(2);
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(32, 4);
+RgbColor colors[] = {RgbColor(0),            // OFF
+                     RgbColor(0xff),         // WHITE
+                     RgbColor(0xaa, 0, 0),   // RED
+                     RgbColor(0, 0xaa, 0),   // GREEN
+                     RgbColor(0, 0, 0xaa)};  // BLUE
 
 uint8_t ledMap(uint8_t button);
-void sendOscMessage(const String &address, float value);
+void sendOscMessage(char* address, float value);
+
+char formatBuffer[20];
 
 void buttonChangedCallback(uint8_t i, bool state) {
   Serial.printf("Button %2d (%d,%d) changed to %s\n", i, buttonMatrix.getX(i), buttonMatrix.getY(i),
                 state ? "Released" : "Pressed");
-  sendOscMessage("button/" + i, state ? 1.0 : 0.0);
+
+  sprintf(formatBuffer, "/button/%d", i);
+  sendOscMessage(formatBuffer, state ? 1.0 : 0.0);
 };
 
 void faderChangedCallback(uint8_t i, u_int16_t value) {
-  Serial.printf("Fader %2d changed to %5d\n", i, value);
-  sendOscMessage("fader/" + i, value / 1024.0);
+  sprintf(formatBuffer, "/fader/%d", i);
+  sendOscMessage(formatBuffer, value / maxFaderVal);
 };
 
 void setup() {
@@ -73,19 +83,42 @@ void setup() {
   Udp.begin(localPort);
 }
 
+void routeButton(OSCMessage& msg, int addrOffset) {
+  if (msg.isFloat(0)) {
+    uint8_t colId = (uint8_t)(msg.getFloat(0) * 255.0);
+    leds.SetPixelColor(ledMap(atoi(msg.getAddress() + addrOffset)), colors[colId]);
+    leds.Show();
+  }
+}
+
 void loop() {
   faders.loop();
   buttonMatrix.loop();
 
-  delay(1);
+  OSCMessage msgIN;
+  int size;
+  if ((size = Udp.parsePacket()) > 0) {
+    Serial.print("UDP rec ");
+    Serial.println(size);
+
+    while (size--) msgIN.fill(Udp.read());
+    if (!msgIN.hasError()) {
+      msgIN.route("/button", routeButton);
+
+    } else {
+      Serial.println("error");
+    }
+  }
 }
 
-void sendOscMessage(const String &address, float value) {
-  OSCMessage msg(address.c_str());
+void sendOscMessage(char* address, float value) {
+  OSCMessage msg(address);
   msg.add(value);
-  Udp.beginPacket(console.toString().c_str(), console_Port);
+
+  Udp.beginPacket(console, console_Port);
   msg.send(Udp);
   Udp.endPacket();
+  msg.empty();
 }
 
 uint8_t ledMap(uint8_t button) {
