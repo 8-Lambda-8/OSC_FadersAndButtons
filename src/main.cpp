@@ -69,13 +69,14 @@ void setup() {
   Serial.println("Setup");
 
   leds.Begin();
-  for (auto &&col : {RgbColor(128, 0, 0), RgbColor(0, 128, 0), RgbColor(0, 0, 128)})
-    for (size_t i = 0; i < 32; i++) {
-      leds.SetPixelColor(ledMap(i), col);
+  for (auto&& col : {RgbColor(128, 0, 0), RgbColor(0, 128, 0), RgbColor(0, 0, 128), colors[0]})
+    for (size_t i = 0; i < 8; i++) {
+      leds.SetPixelColor(ledMap(i + 8 * 0), col);
+      leds.SetPixelColor(ledMap(i + 8 * 1), col);
+      leds.SetPixelColor(ledMap(i + 8 * 2), col);
+      leds.SetPixelColor(ledMap(i + 8 * 3), col);
       leds.Show();
       delay(30);
-      leds.SetPixelColor(ledMap(i), RgbColor(0));
-      leds.Show();
     }
 
   buttonMatrix.init();
