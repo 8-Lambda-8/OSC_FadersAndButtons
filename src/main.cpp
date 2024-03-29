@@ -22,12 +22,16 @@ const unsigned int localPort = 8888;
 
 uint8_t buttonSensePins[] = {26, 25, 33, 32, 35, 34, 39, 36};
 uint8_t buttonPullPins[] = {13, 12, 14, 27};
-ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePins),
-                          sizeof(buttonPullPins));
+const uint8_t columns = sizeof(buttonSensePins);
+const uint8_t rows = sizeof(buttonPullPins);
+const uint8_t buttonCount = columns * rows;
+ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, columns, rows);
 
 Faders faders(2);
+float maxFaderVal = 17400.0;
 
-NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(32, 4);
+NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(buttonCount, 4);
+uint8_t feedback[buttonCount];
 RgbColor colors[] = {
     RgbColor(0x00),              // 00   OFF
     RgbColor(0xff),              // 01   WHITE
@@ -71,10 +75,10 @@ void setup() {
   leds.Begin();
   for (auto&& col : {RgbColor(128, 0, 0), RgbColor(0, 128, 0), RgbColor(0, 0, 128), colors[0]})
     for (size_t i = 0; i < 8; i++) {
-      leds.SetPixelColor(ledMap(i + 8 * 0), col);
-      leds.SetPixelColor(ledMap(i + 8 * 1), col);
-      leds.SetPixelColor(ledMap(i + 8 * 2), col);
-      leds.SetPixelColor(ledMap(i + 8 * 3), col);
+      leds.SetPixelColor(ledMap(i + columns * 0), col);
+      leds.SetPixelColor(ledMap(i + columns * 1), col);
+      leds.SetPixelColor(ledMap(i + columns * 2), col);
+      leds.SetPixelColor(ledMap(i + columns * 3), col);
       leds.Show();
       delay(30);
     }
@@ -97,11 +101,15 @@ void setup() {
 
 void routeButton(OSCMessage& msg, int addrOffset) {
   if (msg.isFloat(0)) {
+    addrOffset++;
     uint8_t colId = (uint8_t)(msg.getFloat(0) * 255.0);
-    leds.SetPixelColor(ledMap(atoi(msg.getAddress() + addrOffset)), colors[colId]);
-    leds.Show();
+    uint8_t btnId = atoi(msg.getAddress() + addrOffset);
+    feedback[btnId] = colId;
   }
 }
+
+uint32_t ledTimer = 0;
+uint8_t blinkState = 0;
 
 void loop() {
   faders.loop();
@@ -120,6 +128,25 @@ void loop() {
     } else {
       Serial.println("error");
     }
+  }
+
+  if (ledTimer < millis() - 50) {
+    for (size_t i = 0; i < buttonCount; i++) {
+      uint8_t fb = feedback[i];
+      if (fb < 14)  // static
+        leds.SetPixelColor(ledMap(i), colors[fb]);
+      else if (fb < 27)  // fast Blink
+        leds.SetPixelColor(ledMap(i), colors[((blinkState / 2) % 2) ? fb - 13 : 0]);
+      else if (fb < 39)  // middle Blink
+        leds.SetPixelColor(ledMap(i), colors[((blinkState / 4) % 2) ? fb - 26 : 0]);
+      else if (fb < 51)  // slow Blink
+        leds.SetPixelColor(ledMap(i), colors[((blinkState / 8) % 2) ? fb - 38 : 0]);
+    }
+
+    blinkState++;
+    if (blinkState > 16) blinkState = 0;
+    leds.Show();
+    ledTimer = millis();
   }
 }
 
