@@ -28,11 +28,22 @@ ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, sizeof(buttonSensePin
 Faders faders(2);
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(32, 4);
-RgbColor colors[] = {RgbColor(0),            // OFF
-                     RgbColor(0xff),         // WHITE
-                     RgbColor(0xaa, 0, 0),   // RED
-                     RgbColor(0, 0xaa, 0),   // GREEN
-                     RgbColor(0, 0, 0xaa)};  // BLUE
+RgbColor colors[] = {
+    RgbColor(0x00),              // 00   OFF
+    RgbColor(0xff),              // 01   WHITE
+    RgbColor(0xff, 0x00, 0x00),  // 02   RED
+    RgbColor(0xff, 0x80, 0x00),  // 03   Orange
+    RgbColor(0xff, 0xff, 0x00),  // 04   Yellow
+    RgbColor(0x80, 0xff, 0x00),  // 05   Charteuse
+    RgbColor(0x00, 0xaa, 0x00),  // 06   GREEN
+    RgbColor(0x00, 0xff, 0x80),  // 07   Spring Green
+    RgbColor(0x00, 0xff, 0xff),  // 08   Cyan
+    RgbColor(0x00, 0x80, 0xff),  // 09   Azure
+    RgbColor(0x00, 0x00, 0xff),  // 10   BLUE
+    RgbColor(0x80, 0x00, 0xff),  // 11   Electric Indigo
+    RgbColor(0xff, 0x00, 0xff),  // 12   Magenta
+    RgbColor(0xff, 0x00, 0x80),  // 13   Rose
+};
 
 uint8_t ledMap(uint8_t button);
 void sendOscMessage(char* address, float value);
