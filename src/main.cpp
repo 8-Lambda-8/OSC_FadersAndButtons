@@ -90,10 +90,12 @@ void setup() {
 
   // init Ethernet
   Ethernet.init(5);
-  while (Ethernet.hardwareStatus() == EthernetNoHardware) Serial.println("hardware Error");
   if (Ethernet.begin(mac) == 0) {
-    delay(10);
-    Ethernet.begin(mac, ip, dns);
+    while (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      Serial.println("hardware Error");
+      delay(10);
+      Ethernet.begin(mac, ip, dns);
+    }
   }
   Serial.println(Ethernet.localIP());
   Udp.begin(localPort);
