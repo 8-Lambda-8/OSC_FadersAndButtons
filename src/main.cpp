@@ -28,7 +28,7 @@ const uint8_t buttonCount = columns * rows;
 ButtonMatrix buttonMatrix(buttonSensePins, buttonPullPins, columns, rows);
 
 Faders faders(2);
-float maxFaderVal = 17400.0;
+float maxFaderVal = 24000.0;  // 17400.0;
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812Method> leds(buttonCount, 4);
 uint8_t feedback[buttonCount];
@@ -56,13 +56,15 @@ char formatBuffer[20];
 
 void buttonChangedCallback(uint8_t i, bool state) {
   Serial.printf("Button %2d (%d,%d) changed to %s\n", i, buttonMatrix.getX(i), buttonMatrix.getY(i),
-                state ? "Released" : "Pressed");
+                state ? "Pressed" : "Released");
 
   sprintf(formatBuffer, "/button/%d", i);
   sendOscMessage(formatBuffer, state ? 1.0 : 0.0);
 };
 
 void faderChangedCallback(uint8_t i, u_int16_t value) {
+  if (value > (2 * maxFaderVal)) return;
+  Serial.printf("Fader %2d %5d -> %.4f\n", i, value, value / maxFaderVal);
   sprintf(formatBuffer, "/fader/%d", i);
   sendOscMessage(formatBuffer, value / maxFaderVal);
 };
@@ -107,6 +109,7 @@ void routeButton(OSCMessage& msg, int addrOffset) {
     uint8_t colId = (uint8_t)(msg.getFloat(0) * 255.0);
     uint8_t btnId = atoi(msg.getAddress() + addrOffset);
     feedback[btnId] = colId;
+    Serial.printf("L %2d %2d\n", btnId, colId);
   }
 }
 
@@ -120,13 +123,9 @@ void loop() {
   OSCMessage msgIN;
   int size;
   if ((size = Udp.parsePacket()) > 0) {
-    Serial.print("UDP rec ");
-    Serial.println(size);
-
     while (size--) msgIN.fill(Udp.read());
     if (!msgIN.hasError()) {
       msgIN.route("/button", routeButton);
-
     } else {
       Serial.println("error");
     }
